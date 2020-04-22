@@ -25,18 +25,56 @@
 /// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 /// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 /// THE SOFTWARE.
+import Combine
 
 public class QuestionGroup : Codable{
   
   public class Score: Codable{
-    public var correctCount = 0
-    public var incorrectCount = 0
+    private enum CodingKeys: String, CodingKey{
+      case correctCount
+      case incorrectCount
+    }
+    
+    public var correctCount = 0 {
+      didSet{
+        updateRunningPercentage()
+      }
+    }
+    
+    public var incorrectCount = 0 {
+      didSet{
+        updateRunningPercentage()
+      }
+    }
+    
+    @Published public var runningPercentage : Double = 0
     public init(){}
+    
+    public required init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.correctCount = try container.decode(Int.self, forKey: .correctCount)
+      self.incorrectCount = try container.decode(Int.self, forKey: .incorrectCount)
+      updateRunningPercentage()
+    }
+    
+    private func updateRunningPercentage(){
+      let totalScore = correctCount + incorrectCount
+      guard totalScore > 0 else{
+        runningPercentage = 0
+        return
+      }
+      runningPercentage = Double(correctCount)/Double(totalScore)
+    }
+    
+    public func reset(){
+      correctCount = 0
+      incorrectCount = 0
+    }
   }
   
   public let questions: [Question]
   public let title: String
-  public var score: Score
+  public private(set) var score: Score
   
   init(questions: [Question],
               score: Score = Score(),
